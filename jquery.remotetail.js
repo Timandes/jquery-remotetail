@@ -9,16 +9,18 @@
 (function($) {
     var defaultOptions = {
         'maxLines': 100,
+        'lines': 20,
         'output': true
     };
 
     var optionsKey = 'options.remotetail';
 
     var retryConnection = function(delay) {
+        var me = this;
         console.log('jQuery.remotetail: Plan to retry in ' + delay + ' secs');
         setTimeout(function() {
             console.log('jQuery.remotetail: Trying to connect ...');
-            connect();
+            connect.apply(me);
         }, delay * 1000);
     };
 
@@ -32,7 +34,15 @@
         ws = new WebSocket(connectionString);
         ws.onopen = function() {
             console.log("jQuery.remotetail: Connected");
-            ws.send(path);
+            var cmd = {
+                'path': options['path'],
+            };
+            if (typeof(options['follow']) != 'undefined'
+                    && options['follow'])
+                cmd['follow'] = true;
+            if (typeof(options['lines']) != 'undefined')
+                cmd['lines'] = options['lines'];
+            ws.send(JSON.stringify(cmd));
         };
         ws.onmessage = function(e) {
             if (!options['output'])
@@ -40,7 +50,7 @@
             
             // get element for new line
             var detachedElementKey = 'detachedElement.remotetail';
-            var detachedElement = this.data(detachedElementKey);
+            var detachedElement = me.data(detachedElementKey);
             var lineElement = (detachedElement?detachedElement:$('<p>'));
             detachedElement = null;
 
@@ -49,47 +59,60 @@
 
             // get total lines in container
             var linesInContainerKey = 'linesInContainer.remotetail';
-            var linesInContainer = this.data(linesInContainerKey);
+            var linesInContainer = me.data(linesInContainerKey);
+            if (typeof(linesInContainer) == 'undefined')
+                linesInContainer = 0;
 
             // append to container
-            this.append(lineElement);
+            me.append(lineElement);
             ++linesInContainer;
 
             // detach the rest
             if (linesInContainer > options['maxLines']) {
-                detachedElement = this.find('p:first-child').detach();
+                detachedElement = me.find('p:first-child').detach();
                 --linesInContainer;
             }
 
             // save detachedElement
-            this.data(detachedElementKey, detachedElement);
+            me.data(detachedElementKey, detachedElement);
+            // save total lines
+            me.data(linesInContainerKey, linesInContainer);
+
+            // Trigger event 'message'
+            me.trigger('message');
         };
         ws.onerror = function() {
             $.error("jQuery.remotetail: Error");
         };
         ws.onclose = function() {
             console.log("jQuery.remotetail: Connection closed");
-            retryConnection(3);
+            retryConnection.apply(me, [3]);
         };
     };
 
     var methods = {
         'init': function(options) {
-            $.extend(true, options, defaultOptions);
+            options = $.extend(true, {}, defaultOptions, options);
 
             if (typeof(options['host']) == 'undefined')
                 $.error("Parameter 'host' is required by jQuery.remotetail");
             if (typeof(options['port']) == 'undefined')
                 $.error("Parameter 'port' is required by jQuery.remotetail");
+            if (typeof(options['path']) == 'undefined')
+                $.error("Parameter 'path' is required by jQuery.remotetail");
 
             this.data(optionsKey, options);
 
             connect.apply(this);
+
+            return this;
         },
         'toggle': function() {
             var options = this.data(optionsKey);
             options['output'] = !options['output'];
             this.data(optionsKey, options);
+
+            return this;
         }
     };
 
