@@ -17,7 +17,7 @@ $('#console').remotetail({
         'host': 'localhost',
         'port': 64447,
         'path': '/var/log/message',
-        'lines': 50,
+        'lines': 50
     });
 ```
 
@@ -49,3 +49,13 @@ Output new lines or not.
 $('#console').remotetail('toggle');
 ```
 
+### Filter lines by (Equals to `tail -n 50 /var/log/message | grep rsync`)
+```
+$('#console').remotetail({
+        'host': 'localhost',
+        'port': 64447,
+        'path': '/var/log/message',
+        'lines': 50,
+        'filterBy': 'rsync'
+    });
+```

@@ -42,6 +42,8 @@
                 cmd['follow'] = true;
             if (typeof(options['lines']) != 'undefined')
                 cmd['lines'] = options['lines'];
+            if (typeof(options['filterBy']) != 'undefined')
+                cmd['filterBy'] = options['filterBy'];
             ws.send(JSON.stringify(cmd));
         };
         ws.onmessage = function(e) {
